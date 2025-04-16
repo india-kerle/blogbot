@@ -47,7 +47,13 @@ Document:
 {document}
 ---
 
-Generate the JSON output now."""}
+Generate the JSON output as:
+
+```
+{{"text": [document with PII]}}
+```
+
+."""}
     ]
 
     return prompt_messages

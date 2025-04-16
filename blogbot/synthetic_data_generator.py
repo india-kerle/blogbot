@@ -9,9 +9,8 @@ import modal
 import pandas as pd  
 from pii_prompt import inject_pii
 
-from schemas import ModelParamsConfig
-from schemas import DataConfig
-from schemas import BlogPost
+from blogbot.configs import ModelParamsConfig
+from blogbot.configs import DataConfig
 
 from tqdm import tqdm
 
@@ -19,7 +18,9 @@ from utils import LLM_APP_NAME
 from utils import data_generation_image
 from utils import SYNTHETIC_DATA_GENERATOR_APP_NAME
 from utils import DATASET_ID
+from utils import VOLUME_CONFIG
 
+from schemas import BlogPost
 
 raw_data_path = PROJECT_DIR / "data/raw"
 
@@ -36,15 +37,11 @@ app = App(
 
 
 deploy_params={
-        "gpu": ["A100-40GB"],
         "timeout": 60 * 60 * 2,
-        "scaledown_window": 60 * 3,
-        "allow_concurrent_inputs": 180,
-        "max_containers": 5,
     }
 
 
-@app.function
+@app.function(timeout=deploy_params["timeout"])
 def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     """Clean data from the raw data path."""
     #take a stratified sample of blogposts by different groups for text diversity
@@ -64,7 +61,7 @@ def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     
     return clean_data
 
-@app.function
+@app.function(volumes=VOLUME_CONFIG, timeout=deploy_params["timeout"])
 async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
     """Generate synthetic data from the dataframe to inject PII.
         - inject PII into the text
@@ -87,22 +84,25 @@ async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
     # Gather all the responses
     res = await modal.functions.gather(*fn_calls)
 
-    loaded_responses = [res for res in res if res.get("text") is not None]
+    loaded_responses = [r for r in res if not r.get("error")]
 
-    responses_df = pd.DataFrame(loaded_responses).rename(columns={"text": "value", "label": "flag"})
+    responses_df = pd.DataFrame(loaded_responses).rename(columns={"text": "value"})
+
     logging.info(f"Generated synthetic data shape: {responses_df.shape}")
-
+    
     return responses_df 
 
-@app.function
+@app.function(volumes=VOLUME_CONFIG, timeout=deploy_params["timeout"])
 def save_data(data: pd.DataFrame) -> None:
-    """Save the data to the processed data path."""
-    data_path = PROJECT_DIR / "data/processed"
-    data_path.mkdir(parents=True, exist_ok=True)
-    logging.info(f"Saving data to {data_path / synthetic_data_config['output_name']}")
-    data.to_parquet(data_path / synthetic_data_config['output_name'], index=False)
+    """Save the generated data to the volume."""
+    data_path = 'data' / synthetic_data_config['output_name']
+    data.to_parquet(data_path, index=False)
+    
+    VOLUME_CONFIG['/data'].commit()
 
-@app.function
+    logging.info(f"Data saved to {data_path}")
+
+@app.function(volumes=VOLUME_CONFIG, timeout=deploy_params["timeout"])
 def run_pipeline() -> None:
     """Run the pipeline."""
     data_path = raw_data_path / synthetic_data_config['input_name']
@@ -120,7 +120,10 @@ def run_pipeline() -> None:
     all_data = pd.concat([no_pii, synthetic_data], ignore_index=True).sample(frac=1, random_seed=synthetic_data_config['random_seed']).reset_index(drop=True)
     all_data['dataset_id'] = DATASET_ID 
 
+    #3. save data
     save_data.remote(all_data)
+    logging.info(f"Pipeline completed. Data saved as {synthetic_data_config['output_name']}")
+
 
 @app.local_entrypoint()
 def main():

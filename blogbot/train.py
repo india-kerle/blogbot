@@ -7,7 +7,7 @@ import logging
 from utils import training_image
 from utils import VOLUME_CONFIG
 
-from schemas import ModelTrainingConfig
+from blogbot.configs import ModelTrainingConfig
 
 from modal import Mount
 from modal import Secret
@@ -22,12 +22,9 @@ app = App(
 synthetic_data_path = PROJECT_DIR / "data/processed"
 CONTAINER_DATA_ROOT = "/data"
 
-data_mount = Mount.from_local_dir(synthetic_data_path, remote_path=CONTAINER_DATA_ROOT)
-
 model_training_config = ModelTrainingConfig().model_dump()
 
 @app.function(
-    mounts=[data_mount],
     volumes=VOLUME_CONFIG
 )
 def process_data() -> tuple[Dataset, Dataset]:
@@ -36,7 +33,7 @@ def process_data() -> tuple[Dataset, Dataset]:
     import datasets
     from transformers import AutoTokenizer
 
-    data_path = os.path.join(CONTAINER_DATA_ROOT, "synthetic_data.parquet")
+    data_path = os.path.join('/data', "synthetic_data.parquet")
     raw_dataset = datasets.load_dataset("parquet", data_files=data_path)
     hf_dataset= raw_dataset['train']
 
