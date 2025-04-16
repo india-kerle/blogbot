@@ -1,0 +1,10 @@
+#ignore pycaches
+__pycache__/
+#ignore DS_Store
+.DS_Store
+#ignore venv
+.venv/
+#ignore env
+.env
+#ignore anything ending in .egg-info
+*.egg-info
