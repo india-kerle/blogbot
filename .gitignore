@@ -8,3 +8,5 @@ __pycache__/
 .env
 #ignore anything ending in .egg-info
 *.egg-info
+
+*.ipynb
