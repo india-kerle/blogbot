@@ -24,8 +24,15 @@ training_image = Image.debian_slim(python_version="3.12").pip_install(
     "torch==2.5.0")
 
 data_generation_image = Image.debian_slim(python_version="3.12").pip_install(
-    "pandas==2.0.3",
-    "tqdm==4.66.1")
+    "pandas==2.2.3",
+    "numpy==1.26.4",
+    "pydantic==2.11.3",
+    "tqdm==4.66.1").add_local_python_source(
+        "blogbot",
+        "schemas",
+        "utils",
+        "pii_prompt"
+    )
 
 pretrained_llms_vol = Volume.from_name("pretrained-llms-vol", create_if_missing=True)
 data_vol = Volume.from_name("blogbot-data-vol", create_if_missing=True)
