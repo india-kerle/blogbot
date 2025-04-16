@@ -1,0 +1,8 @@
+metaflow
+pandas
+fastparquet
+modal
+pydantic
+transformers
+huggingface-hub
+vllm
