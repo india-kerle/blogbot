@@ -31,7 +31,9 @@ In order to improve/expand the solution, I would:
 
 - **Build a modal inference endpoint:** As we are already storing the model weights in a modal volume, I would build out an inference endpoint that makes predictions for a given input text and returns important metadata like model id etc. 
 
--- **Automated retraining/promoting:** Once the synthetic data generation pipeline is finalised, I would build out an automated retraining pipeline that schedules a i.e. bimonthly data generation and training loop, evaluates the challenger model and promotes the model if it is outperformant on a test set.
+- **Automated retraining/promoting:** Once the synthetic data generation pipeline is finalised, I would build out an automated retraining pipeline that schedules a i.e. bimonthly data generation and training loop, evaluates the challenger model and promotes the model if it is outperformant on a test set.
+
+- **Add smoke tests:** I would add smoke tests to ensure a functioning `Llm` endpoint.  
 
 ## The pipeline
 
