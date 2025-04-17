@@ -42,7 +42,7 @@ class ModelTrainingConfig(BaseModel):
     """Config for training smaller BERT model downstream with synthetic data."""
     test_size: float = Field(default=0.1)
     random_state: int = Field(default=42)
-    model_name: str = Field(default="distilbert/distilbert-base-uncased")
+    hf_model_id: str = Field(default="distilbert/distilbert-base-uncased")
     max_length: int = Field(default=512)
     num_labels: int = Field(default=2)
     output_dir: str = Field(default="output")

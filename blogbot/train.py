@@ -44,7 +44,7 @@ def process_data() -> tuple[Dataset, Dataset]:
     logging.info(f"Raw dataset loaded with {len(hf_dataset)} samples.")
     
     split_dataset_dict = hf_dataset.train_test_split(test_size=model_training_config['test_size'], seed=model_training_config['random_state'])
-    tokenizer = AutoTokenizer.from_pretrained(model_training_config['model_name'])
+    tokenizer = AutoTokenizer.from_pretrained(model_training_config['hf_model_id'])
         
     def preprocess_function(examples):
         return tokenizer(examples["text"], truncation=True, padding="max_length", max_length=model_training_config['max_length'])
@@ -58,7 +58,7 @@ def process_data() -> tuple[Dataset, Dataset]:
 
     train_dataset = tokenized_datasets["train"]
     eval_dataset = tokenized_datasets["test"]
-
+    
     return train_dataset, eval_dataset
 
 @app.function(
@@ -66,7 +66,7 @@ def process_data() -> tuple[Dataset, Dataset]:
     timeout=60 * 60 * 2,
     volumes=VOLUME_CONFIG
 )
-def train_model(train_data: Dataset, test_data: Dataset) -> None:
+def train_model(train_data: Dataset) -> None:
     """Train model using synthetic data."""
     from transformers import AutoTokenizer
     from transformers import AutoModelForSequenceClassification
@@ -80,13 +80,13 @@ def train_model(train_data: Dataset, test_data: Dataset) -> None:
     import os 
     from utils import get_model
 
-    get_model(model_training_config['model_name'])
+    get_model(model_training_config['hf_model_id'])
 
     model = AutoModelForSequenceClassification.from_pretrained(
-            model_training_config['model_name'],
+            model_training_config['hf_model_id'],
             num_labels=model_training_config['num_labels'],
         )
-    tokenizer = AutoTokenizer.from_pretrained(model_training_config['model_name'])
+    tokenizer = AutoTokenizer.from_pretrained(model_training_config['hf_model_id'])
 
     # Create output directory if it doesn't exist
     os.makedirs(model_training_config['output_dir'], exist_ok=True)
@@ -102,8 +102,6 @@ def train_model(train_data: Dataset, test_data: Dataset) -> None:
         save_strategy="epoch",       # Save checkpoint at the end of each epoch
         logging_steps=10,            # Log training loss every 10 steps
         load_best_model_at_end=True, # Load the best model checkpoint at the end
-        metric_for_best_model="f1",  # Use F1 score to determine the best model
-        greater_is_better=True,
         report_to="none",            # Disable wandb/tensorboard reporting unless configured
         fp16=torch.cuda.is_available(), # Enable mixed-precision training if GPU available
     )
@@ -112,7 +110,6 @@ def train_model(train_data: Dataset, test_data: Dataset) -> None:
         model=model,
         args=training_args,
         train_dataset=train_data,
-        eval_dataset=test_data, # Using the test split as the evaluation set
         tokenizer=tokenizer,
     )
 
@@ -130,12 +127,11 @@ def train_model(train_data: Dataset, test_data: Dataset) -> None:
     image=training_image,
     volumes=VOLUME_CONFIG
 )
-def evaluate_model(model_path: str, test_data: Dataset) -> dict:
+def evaluate_model(test_data: Dataset) -> dict:
     """Evaluate the trained model on the test dataset."""
     from transformers import pipeline
     from sklearn.metrics import accuracy_score, precision_recall_fscore_support
     import torch
-    import numpy as np    
     #in the volume 
     model_path = "/fine-tuned/final_model"
 
@@ -174,9 +170,8 @@ def main() -> None:
     
     modal run --detach blogbot/train.py
     """
-    train_data, eval_data = process_data.remote()
-    train_model.remote(train_data, eval_data)
-    # metrics = evaluate_model.remote(eval_data)
+    train_data, test_data = process_data.remote()
+    train_model.remote(train_data=train_data)
+    metrics = evaluate_model.remote(test_data=test_data)
 
-    # logging.info(f"Training completed! Final evaluation metrics: {metrics}")
-    
+    logging.info(f"Training completed! Final evaluation metrics: {metrics}")
