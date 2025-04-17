@@ -66,7 +66,7 @@ def process_data() -> tuple[Dataset, Dataset]:
     timeout=60 * 60 * 2,
     volumes=VOLUME_CONFIG
 )
-def train_model(train_data: Dataset) -> None:
+def train_model(train_data: Dataset, test_data: Dataset) -> None:
     """Train model using synthetic data."""
     from transformers import AutoTokenizer
     from transformers import AutoModelForSequenceClassification
@@ -79,6 +79,7 @@ def train_model(train_data: Dataset) -> None:
     import torch
     import os 
     from utils import get_model
+    from pathlib import Path 
 
     get_model(model_training_config['hf_model_id'])
 
@@ -88,8 +89,9 @@ def train_model(train_data: Dataset) -> None:
         )
     tokenizer = AutoTokenizer.from_pretrained(model_training_config['hf_model_id'])
 
-    # Create output directory if it doesn't exist
-    os.makedirs(model_training_config['output_dir'], exist_ok=True)
+    volume_mount_path = Path("/fine-tuned")
+    model_output_base = volume_mount_path / model_training_config.get('output_dir', 'output')
+    final_model_path = model_output_base / "final_model"
     
     training_args = TrainingArguments(
         output_dir=model_training_config['output_dir'],
@@ -110,16 +112,16 @@ def train_model(train_data: Dataset) -> None:
         model=model,
         args=training_args,
         train_dataset=train_data,
+        eval_dataset=test_data, # test on the training data
         tokenizer=tokenizer,
     )
 
     trainer.train()
     # Save the model
-    model_path = os.path.join(model_training_config['output_dir'], "final_model")
-    trainer.save_model(model_path)
-    tokenizer.save_pretrained(model_path)
+    trainer.save_model(str(final_model_path))
+    tokenizer.save_pretrained(str(final_model_path))
 
-    logging.info(f"Model trained and saved to {model_path}")
+    logging.info(f"Model trained and saved to {str(final_model_path)}")
 
     VOLUME_CONFIG['/fine-tuned'].commit()
 
@@ -132,26 +134,33 @@ def evaluate_model(test_data: Dataset) -> dict:
     from transformers import pipeline
     from sklearn.metrics import accuracy_score, precision_recall_fscore_support
     import torch
+    from pathlib import Path
     #in the volume 
-    model_path = "/fine-tuned/final_model"
-
+    volume_mount_path = Path("/fine-tuned")
+    model_output_base = volume_mount_path / model_training_config.get('output_dir', 'output')
+    final_model_path = model_output_base / "final_model"
+    
     classifier = pipeline(
         "text-classification", 
-        model=model_path, 
-        tokenizer=model_path,
-        device=0 if torch.cuda.is_available() else -1  # Use GPU if available
+        model=str(final_model_path), 
+        tokenizer=str(final_model_path),
+        device=0 if torch.cuda.is_available() else -1,
+        max_length=model_training_config['max_length'],
+        truncation=True,
     )
 
-    texts = test_data["input_ids"]  # Assuming tokenized inputs
+    texts = test_data["text"]  # Assuming tokenized inputs
     labels = test_data["labels"]
-    
+        
     # Run inference
     predictions = classifier(texts)
     
     # Calculate metrics
-    accuracy = accuracy_score(labels, predictions)
+    pred_labels = [int(pred["label"].replace("LABEL_", "")) for pred in predictions]
+
+    accuracy = accuracy_score(labels, pred_labels)
     precision, recall, f1, _ = precision_recall_fscore_support(
-        labels, predictions, average='binary', zero_division=0
+        labels, pred_labels, average='binary', zero_division=0
     )
     
     metrics = {
@@ -161,7 +170,6 @@ def evaluate_model(test_data: Dataset) -> dict:
         "f1": float(f1)
     }
     
-    logging.info(f"Evaluation metrics: {metrics}")
     return metrics
 
 @app.local_entrypoint()
@@ -171,7 +179,7 @@ def main() -> None:
     modal run --detach blogbot/train.py
     """
     train_data, test_data = process_data.remote()
-    train_model.remote(train_data=train_data)
+    #train_model.remote(train_data=train_data, test_data=test_data)
     metrics = evaluate_model.remote(test_data=test_data)
 
-    logging.info(f"Training completed! Final evaluation metrics: {metrics}")
+    print(f"Training completed! Final evaluation metrics: {metrics}")
