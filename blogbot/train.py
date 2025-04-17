@@ -9,7 +9,6 @@ from utils import VOLUME_CONFIG
 
 from blogbot.configs import ModelTrainingConfig
 
-from modal import Mount
 from modal import Secret
 from modal import App
 
@@ -34,6 +33,7 @@ def process_data() -> tuple[Dataset, Dataset]:
     from transformers import AutoTokenizer
 
     data_path = os.path.join('/data', "synthetic_data.parquet")
+
     raw_dataset = datasets.load_dataset("parquet", data_files=data_path)
     hf_dataset= raw_dataset['train']
 

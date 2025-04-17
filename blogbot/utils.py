@@ -1,6 +1,7 @@
 from modal import Image
 from modal import Volume
 import logging 
+from blogbot import PROJECT_DIR
 
 LLM_APP_NAME = 'open-source-llm'
 SYNTHETIC_DATA_GENERATOR_APP_NAME = 'blogbot-synthetic-data-generator'
@@ -26,12 +27,14 @@ training_image = Image.debian_slim(python_version="3.12").pip_install(
 data_generation_image = Image.debian_slim(python_version="3.12").pip_install(
     "pandas==2.2.3",
     "numpy==1.26.4",
-    "pydantic==2.11.3",
-    "tqdm==4.66.1").add_local_python_source(
+    "pydantic==2.11.3").add_local_python_source(
         "blogbot",
         "schemas",
         "utils",
         "pii_prompt"
+    ).add_local_dir(
+        PROJECT_DIR / "data",
+        remote_path="/input-data",
     )
 
 pretrained_llms_vol = Volume.from_name("pretrained-llms-vol", create_if_missing=True)

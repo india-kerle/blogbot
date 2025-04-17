@@ -124,6 +124,7 @@ class Llm:
                 vllm_output_text = final_output.outputs[0].text
                 try:
                     output = from_json(vllm_output_text, allow_partial=False)
+                    print(output)
                 except Exception as e:
                     print(f"Error parsing JSON output: {e}")
                     output = {"error": "Failed to parse generated output"}
