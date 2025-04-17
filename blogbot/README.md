@@ -2,7 +2,8 @@
 
 This directory contains the scripts necessary to generate synthetic data, train and evaluate a smaller, binary BERT based classifier. The proposed solutions is as follows:
 
-[PROPOSED SOLUTION IMAGE]
+<img width="826" alt="Screenshot 2025-04-17 at 08 10 16" src="https://github.com/user-attachments/assets/1139e57e-f3e3-4171-acdd-6864af466d9e" />
+
 
 ## :sparkles: Assumptions and constraints
 
@@ -12,13 +13,13 @@ To constrain the problem, I made the following assumptions:
 - I am only dealing with the one known violation type: personally identifiable information (PII)
 - I am only dealing with blogposts from one known source 
 - I am generating a small amount of synthetic data, given modal free credit constraints 
-- The blogposts I am using do NOT already contain PII. 
+- I assume the blogposts I am using do NOT already contain PII. 
 
 ## 💅 Next steps
 
-In order to improve/expand the solution, I would:
+In order to improve/expand the solution, I would make changes methodologically and infrastructurally. 
 
-### Methods next steps
+### Methods 
 
 - **Introduce more diversity in injected PII:** either by better prompting or stuffing randomly chosen PII from a data source and reframing the task to include it. This is because the LLM generates similar PII i.e. `Jane Doe`, `John Doe`
 
@@ -27,7 +28,7 @@ In order to improve/expand the solution, I would:
 - **Expand to additional violation types:** I am only addressing one violation type, predicting the presence of PII or not. Given the wider business goal of an overall service that allows licensees to report data that is in violation of laws/regulations, we would need to collect/generate more data on different violation types to train different models.  
 
 
-### Infrastructure next steps
+### Infrastructure 
 
 - **Build a modal inference endpoint:** As we are already storing the model weights in a modal volume, I would build out an inference endpoint that makes predictions for a given input text and returns important metadata like model id etc. 
 
@@ -35,9 +36,9 @@ In order to improve/expand the solution, I would:
 
 - **Add smoke tests:** I would add smoke tests to ensure a functioning `Llm` endpoint.  
 
-## The pipeline
+## 🫡 the pipeline
 
-Assuming you would 
+Assuming you have set up your environment and your modal account:
 
 ```
 modal deploy blogbot/llm.py ## step 1 - deploy your Llm 
