@@ -77,7 +77,6 @@ def train_model(train_data: Dataset, test_data: Dataset) -> None:
         Trainer,
     )
     import torch
-    import os 
     from utils import get_model
     from pathlib import Path 
 
@@ -151,7 +150,7 @@ def evaluate_model(test_data: Dataset) -> dict:
 
     texts = test_data["text"]  # Assuming tokenized inputs
     labels = test_data["labels"]
-        
+
     # Run inference
     predictions = classifier(texts)
     
@@ -169,7 +168,7 @@ def evaluate_model(test_data: Dataset) -> dict:
         "recall": float(recall),
         "f1": float(f1)
     }
-    
+
     return metrics
 
 @app.local_entrypoint()
@@ -179,7 +178,7 @@ def main() -> None:
     modal run --detach blogbot/train.py
     """
     train_data, test_data = process_data.remote()
-    #train_model.remote(train_data=train_data, test_data=test_data)
+    train_model.remote(train_data=train_data, test_data=test_data)
     metrics = evaluate_model.remote(test_data=test_data)
 
     print(f"Training completed! Final evaluation metrics: {metrics}")

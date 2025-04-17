@@ -53,5 +53,6 @@ modal run --detach blogbot/train.py ## step 3 - train and evaluate a binary viol
 The model performance metrics on 100 held-out blogposts from a dataset of 1,000 blogposts with 500 synthetically injected PII and 500 non-PII blogposts are:
 
 ```
-{'accuracy': 0.65, 'precision': 0.631578947368421, 'recall': 0.5333333333333333, 'f1': 0.5783132530120482}
+{'accuracy': 0.86, 'precision': 0.8163265306122449, 'recall': 0.8888888888888888, 'f1': 
+0.851063829787234}
 ```

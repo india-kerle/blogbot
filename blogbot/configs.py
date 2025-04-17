@@ -29,9 +29,6 @@ class DataConfig(BaseModel):
     groups: list[str] = Field(default=['gender', 'age', 'topic'])
     frac: float = Field(default=0.5)
     random_seed: int = Field(default=42)
-    #the sample size is small - this is because of 
-    #modal free credit constraints - a larger training set
-    #would yield better model performance
     sample_size: int = Field(default=1000)
     data_path: str = Field(default="data/raw")
     max_length: int = Field(default=1000)
@@ -46,7 +43,7 @@ class ModelTrainingConfig(BaseModel):
     max_length: int = Field(default=512)
     num_labels: int = Field(default=2)
     output_dir: str = Field(default="output")
-    num_train_epochs: int = Field(default=1)
+    num_train_epochs: int = Field(default=6)
     learning_rate: float = Field(default=2e-5)
     train_batch_size: int = Field(default=32)
     eval_batch_size: int = Field(default=32)
