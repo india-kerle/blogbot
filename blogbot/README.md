@@ -21,6 +21,8 @@ In order to improve/expand the solution, I would make changes methodologically a
 
 ### Methods 
 
+- **Better data cleaning:** I did minimal cleaning to the blogposts. I would do more cleaning of whitespaces and special characters. I would also not arbitrarily cut the length of blogposts. 
+
 - **Introduce more diversity in injected PII:** either by better prompting or stuffing randomly chosen PII from a data source and reframing the task to include it. This is because the LLM generates similar PII i.e. `Jane Doe`, `John Doe`
 
 - **Verify the blogposts do NOT contain PII:** via a process like disagreement modelling or by training a weak learner on a small subset of gold,standard non-PII blogposts and predicting whether data contains PII. I would then include high precision blogposts in my final training set.

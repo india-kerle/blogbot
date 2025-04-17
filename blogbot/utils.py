@@ -29,7 +29,6 @@ data_generation_image = Image.debian_slim(python_version="3.12").pip_install(
     "numpy==1.26.4",
     "pydantic==2.11.3").add_local_python_source(
         "blogbot",
-        "schemas",
         "utils",
         "pii_prompt"
     ).add_local_dir(

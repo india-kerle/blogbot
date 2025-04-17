@@ -18,7 +18,7 @@ class ModelParamsConfig(BaseModel):
     gpu_memory_utilization: float = Field(default=0.9)
     max_num_seqs: int = Field(default=60)
     enable_lora: bool = Field(default=False)
-    max_tokens: int = Field(default=9088 - 2048)
+    max_tokens: int = Field(default=2048)
 
 class DataConfig(BaseModel):
     """Config for synthetic data generator"""

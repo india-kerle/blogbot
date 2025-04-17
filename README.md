@@ -34,6 +34,7 @@ pip install -e .
 1. Create an account at [modal.com](https://modal.com/)
 2. Run pip install modal to install the modal Python package
 3. Run modal setup to authenticate (if this doesn’t work, try `python -m modal setup`)
+4. Generate a huggingface token in your huggingface account and add it as a secret to modal in `Secrets`. Call it `huggingface-token` and set it to the value of your huggingface token.
 
 ### Unit tests 
 

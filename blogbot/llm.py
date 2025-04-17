@@ -16,7 +16,7 @@ deploy_params={
         "timeout": 60 * 60 * 2,
         "scaledown_window": 60 * 3,
         "allow_concurrent_inputs": 180,
-        "max_containers": 5,
+        "max_containers": 15,
     }
 
 @app.cls(
@@ -69,7 +69,6 @@ class Llm:
         self,
         id: str,
         prompt_messages: List[Dict[str, str]],
-        target_schema: dict,
         ) -> dict:
         """Generate structured data using an LLM.
 
@@ -77,7 +76,6 @@ class Llm:
         ---
         id (str): The ID of the request.
         prompt_messages (List[Dict[str, str]]): The structured messages for the chat template.
-        target_schema (dict): The JSON schema for guided decoding.
 
         Returns:
         ---
@@ -94,15 +92,8 @@ class Llm:
                 tokenize=False,
                 add_generation_prompt=True
             )
-        
-
-        guided_decoding_params = GuidedDecodingParams(
-            json=target_schema, 
-            backend="outlines", 
-            whitespace_pattern=None)
-        
+    
         sampling_params = SamplingParams(
-                guided_decoding=guided_decoding_params,
                 max_tokens=self.config['max_tokens'],
                 temperature=0.0,
                 top_p=0.9,
@@ -122,18 +113,15 @@ class Llm:
 
             if final_output and final_output.outputs:
                 vllm_output_text = final_output.outputs[0].text
-                try:
-                    output = from_json(vllm_output_text, allow_partial=False)
-                    print(output)
-                except Exception as e:
-                    print(f"Error parsing JSON output: {e}")
-                    output = {"error": "Failed to parse generated output"}
+                print(f"generated output: {vllm_output_text}")
 
         except Exception as e:
-            print(f"Error processing generation result: {e}")
-            output = {"error": "Failed to parse generated output"}
+            print(f"Error generating result: {e}")
+            output = {"error": "Failed to generate output"}
 
+        #adhere to data contract 
+        output.update({"value": vllm_output_text})
         output.update({"id": id})
-        output.update({"label": 1})
+        output.update({"flag": 1})
         
         return output

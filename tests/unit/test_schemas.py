@@ -1,8 +1,6 @@
-from blogbot.schemas import ModelParamsConfig
-from blogbot.schemas import DataConfig
-from blogbot.schemas import ModelTrainingConfig
-from blogbot.schemas import BlogPost
-
+from blogbot.configs import ModelParamsConfig
+from blogbot.configs import DataConfig
+from blogbot.configs import ModelTrainingConfig
 import pytest
 from pydantic import ValidationError
 
@@ -64,18 +62,3 @@ def test_training_config_custom_values():
 def test_training_config_invalid_type():
     with pytest.raises(ValidationError):
         ModelTrainingConfig(num_train_epochs="three")
-
-
-# --- BlogPost Tests ---
-
-def test_blog_post_valid():
-    post = BlogPost(text="This is a blog post.")
-    assert post.text == "This is a blog post."
-
-def test_blog_post_missing_text():
-    with pytest.raises(ValidationError):
-        BlogPost()
-
-def test_blog_post_invalid_type():
-    with pytest.raises(ValidationError):
-        BlogPost(text=123)  # Should be a string

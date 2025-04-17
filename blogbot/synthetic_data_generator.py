@@ -14,9 +14,6 @@ from utils import DATASET_ID
 from utils import VOLUME_CONFIG
 from utils import data_generation_image
 
-from schemas import BlogPost
-
-
 model_params = ModelParamsConfig().model_dump()
 synthetic_data_config = DataConfig().model_dump()
 
@@ -59,8 +56,6 @@ async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
     import asyncio
 
     texts = data[['id', 'value']].to_dict(orient='records')
-    #use our agreed upon schema for the data
-    target_schema = BlogPost.model_json_schema()
 
     fn_calls = []
     for text in texts:
@@ -70,16 +65,16 @@ async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
             llm.generate._experimental_spawn.aio(
                 id=text['id'],
                 prompt_messages=compiled_prompt,
-                target_schema=target_schema
             )
         )
+
+    fn_id = await asyncio.gather(*fn_calls)
+    responses = modal.functions.gather(*fn_id)
+
     # Gather all the responses
-    raw_responses = await asyncio.gather(*fn_calls)
-    res = [r.get() for r in raw_responses]
+    loaded_responses = [r for r in responses if not r.get("error")]
 
-    loaded_responses = [r for r in res if not r.get("error")]
-
-    return pd.DataFrame(loaded_responses).rename(columns={"text": "value"})
+    return pd.DataFrame(loaded_responses)
     
 @app.function(volumes=VOLUME_CONFIG, timeout=deploy_params["timeout"])
 def save_data(data: pd.DataFrame) -> None:
