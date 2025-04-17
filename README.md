@@ -1,4 +1,4 @@
-# 🤖 Blogbot violations model
+# 🤖 Blogbot violations model: TL;DR
 
 This repo contains the scripts necessary to:
 
@@ -6,13 +6,13 @@ This repo contains the scripts necessary to:
 
 ```
 modal deploy blogbot/llm.py ## deploy your Llm 
-modal run --detach blogpot/synthetic_data_generation.py ## Run the synthetic data generation sript
+modal run --detach blogbot/synthetic_data_generation.py ## Run the synthetic data generation sript
 ```
 
 2. **Train a model**: to detect PII in blogposts using synthetic data generated in step 1 for the positive class (has violations) and a sample of blogposts without artifically injected PII.
 
 ```
-modal run --detach blogpot/train.py ##train and test the model on the data
+modal run --detach blogbot/train.py ##train and test the model on the data
 ```
 
 3. **Evaluate the model**: on a test set of blogposts with injected PII and without PII. This also happens in the training script. 
