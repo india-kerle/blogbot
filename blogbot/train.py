@@ -7,7 +7,8 @@ import logging
 from utils import training_image
 from utils import VOLUME_CONFIG
 
-from blogbot.configs import ModelTrainingConfig
+from configs import ModelTrainingConfig
+from configs import DataConfig
 
 from modal import Secret
 from modal import App
@@ -22,6 +23,7 @@ synthetic_data_path = PROJECT_DIR / "data/processed"
 CONTAINER_DATA_ROOT = "/data"
 
 model_training_config = ModelTrainingConfig().model_dump()
+data_config = DataConfig().model_dump()
 
 @app.function(
     volumes=VOLUME_CONFIG
@@ -31,11 +33,13 @@ def process_data() -> tuple[Dataset, Dataset]:
     import os
     import datasets
     from transformers import AutoTokenizer
+    import pandas as pd 
 
-    data_path = os.path.join('/data', "synthetic_data.parquet")
-
-    raw_dataset = datasets.load_dataset("parquet", data_files=data_path)
-    hf_dataset= raw_dataset['train']
+    data_path = os.path.join('/data', data_config['output_name'])
+    df = pd.read_parquet(data_path)
+    #rename 'flags' to 'labels' for compatibility with Hugging Face datasets
+    df.rename(columns={'flag': 'labels', 'value': 'text'}, inplace=True)
+    hf_dataset = datasets.Dataset.from_pandas(df)
 
     logging.info(f"Raw dataset loaded with {len(hf_dataset)} samples.")
     
@@ -43,25 +47,23 @@ def process_data() -> tuple[Dataset, Dataset]:
     tokenizer = AutoTokenizer.from_pretrained(model_training_config['model_name'])
         
     def preprocess_function(examples):
-        return tokenizer(examples["value"], truncation=True, padding="max_length", max_length=model_training_config['max_length'])
+        return tokenizer(examples["text"], truncation=True, padding="max_length", max_length=model_training_config['max_length'])
 
     tokenized_datasets = split_dataset_dict.map(preprocess_function, batched=True)
 
     # Remove columns not needed by the model
-    tokenized_datasets = tokenized_datasets.remove_columns(["value", "id"]) # Remove original text and id
+    tokenized_datasets = tokenized_datasets.remove_columns(["id"]) 
     # Ensure the format is set for PyTorch
     tokenized_datasets.set_format("torch")
 
     train_dataset = tokenized_datasets["train"]
     eval_dataset = tokenized_datasets["test"]
 
-    VOLUME_CONFIG['/data'].commit()  # Commit the changes to the volume
-
     return train_dataset, eval_dataset
 
 @app.function(
-    image=training_image,
-    mounts=[data_mount],
+    gpu=["A100-40GB"],
+    timeout=60 * 60 * 2,
     volumes=VOLUME_CONFIG
 )
 def train_model(train_data: Dataset, test_data: Dataset) -> None:
@@ -76,6 +78,9 @@ def train_model(train_data: Dataset, test_data: Dataset) -> None:
     )
     import torch
     import os 
+    from utils import get_model
+
+    get_model(model_training_config['model_name'])
 
     model = AutoModelForSequenceClassification.from_pretrained(
             model_training_config['model_name'],
@@ -163,7 +168,7 @@ def evaluate_model(model_path: str, test_data: Dataset) -> dict:
     logging.info(f"Evaluation metrics: {metrics}")
     return metrics
 
-@app.local_entrypoint
+@app.local_entrypoint()
 def main() -> None:
     """Main function to run the training pipeline.
     
@@ -171,7 +176,7 @@ def main() -> None:
     """
     train_data, eval_data = process_data.remote()
     train_model.remote(train_data, eval_data)
-    metrics = evaluate_model.remote(eval_data)
+    # metrics = evaluate_model.remote(eval_data)
 
-    logging.info(f"Training completed! Final evaluation metrics: {metrics}")
+    # logging.info(f"Training completed! Final evaluation metrics: {metrics}")
     

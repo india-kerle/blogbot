@@ -8,6 +8,8 @@ from pii_prompt import inject_pii
 from blogbot.configs import ModelParamsConfig
 from blogbot.configs import DataConfig
 
+from pathlib import Path
+
 from utils import LLM_APP_NAME
 from utils import SYNTHETIC_DATA_GENERATOR_APP_NAME
 from utils import DATASET_ID
@@ -36,12 +38,12 @@ remote_path = "/input-data"
 def clean_data(data: pd.DataFrame) -> pd.DataFrame:
     """Clean data from the raw data path."""
     #take a stratified sample of blogposts by different groups for text diversity
-    data_sample = data.groupby(synthetic_data_config['groups']).sample(frac=synthetic_data_config['frac'], random_state=synthetic_data_config['random_state'], replace=False)
+    data_sample = data.groupby(synthetic_data_config['groups']).sample(frac=synthetic_data_config['frac'], random_state=synthetic_data_config['random_seed'], replace=False)
 
     #sample further 
     clean_data = (data_sample
             .drop_duplicates(subset=['text'])
-            .sample(synthetic_data_config['sample_size'], random_state=synthetic_data_config['random_state'])
+            .sample(synthetic_data_config['sample_size'], random_state=synthetic_data_config['random_seed'])
             .reset_index(drop=True)
             )
     
@@ -51,8 +53,9 @@ def clean_data(data: pd.DataFrame) -> pd.DataFrame:
 
 @app.function(timeout=deploy_params["timeout"])
 async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
-    """Generate synthetic data from the dataframe to inject PII.
-        - inject PII into the text    """
+    """Generate synthetic data to inject PII.
+        - inject PII into the text
+    """
     import asyncio
 
     texts = data[['id', 'value']].to_dict(orient='records')
@@ -69,9 +72,9 @@ async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
         )
 
     fn_id = await asyncio.gather(*fn_calls)
-    responses = modal.functions.gather(*fn_id)
-
-    # Gather all the responses
+    responses = modal.FunctionCall.gather(*fn_id)
+    
+    # Gather all the responses that did not return an error
     loaded_responses = [r for r in responses if not r.get("error")]
 
     return pd.DataFrame(loaded_responses)
@@ -79,13 +82,16 @@ async def generate_synthetic_data(data: pd.DataFrame) -> pd.DataFrame:
 @app.function(volumes=VOLUME_CONFIG, timeout=deploy_params["timeout"])
 def save_data(data: pd.DataFrame) -> None:
     """Save the generated data to the volume."""
-    data_path = 'data' / synthetic_data_config['output_name']
-    data.to_parquet(data_path, index=False)
+    output_dir = Path("/data")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    full_data_path = output_dir / synthetic_data_config['output_name'] # Construct full path
+
+    data.to_parquet(full_data_path, index=False)
     
     VOLUME_CONFIG['/data'].commit()
 
 @app.function(volumes=VOLUME_CONFIG, timeout=deploy_params["timeout"])
-async def run_pipeline() -> None:
+def run_pipeline() -> None:
     """Run the pipeline."""
     data_path = f"{remote_path}/raw/{synthetic_data_config['input_name']}"
     data = pd.read_csv(data_path)
@@ -102,15 +108,18 @@ async def run_pipeline() -> None:
     
     print(f"Generating PII-injected data for {len(pii)} samples.")
     synthetic_data = generate_synthetic_data.remote(pii)
-    
-    all_data = pd.concat([no_pii, synthetic_data], ignore_index=True).sample(frac=1, random_seed=synthetic_data_config['random_seed']).reset_index(drop=True)
+    print(f"Generated synthetic data for {len(synthetic_data)} samples.")
+
+    all_data = pd.concat([no_pii, synthetic_data], ignore_index=True).sample(frac=1, random_state=synthetic_data_config['random_seed']).reset_index(drop=True)
     all_data['dataset_id'] = DATASET_ID 
+    print(f"Data has {len(all_data)} samples.")
+    print(all_data.head())
 
     #3. save data
     save_data.remote(all_data)
     print(f"Data saved with {len(all_data)} samples.")
 
-    print(f"Pipeline completed. Data saved as {synthetic_data_config['output_name']}")
+    print(f"Pipeline completed. Data saved to {synthetic_data_config['output_name']}")
 
 @app.local_entrypoint()
 def main():

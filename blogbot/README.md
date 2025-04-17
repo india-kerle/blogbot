@@ -21,7 +21,7 @@ In order to improve/expand the solution, I would make changes methodologically a
 
 ### Methods 
 
-- **Better data cleaning:** I did minimal cleaning to the blogposts. I would do more cleaning of whitespaces and special characters. I would also not arbitrarily cut the length of blogposts. 
+- **Better data cleaning:** I did minimal cleaning to the blogposts. I would do more cleaning of whitespaces and special characters. I would also not arbitrarily cut the length of blogposts. Finally, I would also post-process the synthetic data to ensure strings like '...', 'blog_with_pii' are not included.
 
 - **Introduce more diversity in injected PII:** either by better prompting or stuffing randomly chosen PII from a data source and reframing the task to include it. This is because the LLM generates similar PII i.e. `Jane Doe`, `John Doe`
 

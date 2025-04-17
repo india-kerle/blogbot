@@ -1,8 +1,8 @@
-from typing import List, Dict, Any # Added imports for clarity
+from typing import List, Dict 
 
 def inject_pii(document: str) -> List[Dict[str, str]]:
     """Constructs the prompt messages for injecting synthetic PII."""
-    
+
     system_content = """
 You are an AI assistant specialized in generating synthetic data. Your task is to inject *random, plausible-sounding, but entirely fake* Personally Identifiable Information (PII) into a given document (representing a blog post snippet). The final output must be the document with the injected PII naturally integrated.
 
@@ -27,7 +27,7 @@ It was great catching up with friends at that little cafe downtown. We were chat
 </original_text>
 <pii_type_injected>Name, Email</pii_type_injected>
 <injected_text>
-It was great catching up with friends, including **Liam O'Connell** (liam.oconnell@email-placeholder.net), at that little cafe downtown. We were chatting about holiday plans and realized we hadn't booked anything!
+It was great catching up with friends, including Liam O'Connell (liam.oconnell@email-placeholder.net), at that little cafe downtown. We were chatting about holiday plans and realized we hadn't booked anything!
 </injected_text>
 </example>
 
@@ -37,7 +37,7 @@ Setting up the new smart home device was tricky. I had to call support, and afte
 </original_text>
 <pii_type_injected>Support Agent Name, Phone Number</pii_type_injected>
 <injected_text>
-Setting up the new smart home device was tricky. I had to call support on **555-0142**, and after a while on hold, an agent named **Maria Garcia** walked me through resetting the network connection which finally worked.
+Setting up the new smart home device was tricky. I had to call support on 555-0142, and after a while on hold, an agent named Maria Garcia walked me through resetting the network connection which finally worked.
 </injected_text>
 </example>
 
@@ -47,7 +47,7 @@ I'm trying out a new recipe I found online. It involves quite a bit of prep work
 </original_text>
 <pii_type_injected>Person's Name, Partial Address</pii_type_injected>
 <injected_text>
-I'm trying out a new recipe I found online for **Mrs. Eleanor Vance** over on **Willow Creek Lane** - she's hosting the potluck tonight! It involves quite a bit of prep work, especially with chopping all the vegetables. Hopefully, it turns out okay!
+I'm trying out a new recipe I found online for Mrs. Eleanor Vance over on Willow Creek Lane - she's hosting the potluck tonight! It involves quite a bit of prep work, especially with chopping all the vegetables. Hopefully, it turns out okay!
 </injected_text>
 </example>
 
@@ -57,7 +57,7 @@ My trip planning is getting serious! Booked the main flight yesterday, now just 
 </original_text>
 <pii_type_injected>Booking Reference, Date</pii_type_injected>
 <injected_text>
-My trip planning is getting serious! Booked the main flight yesterday (booking ref **BKF-78X3YZ** for travel on **2025-08-12**), now just need to sort out the accommodation and maybe a rental car for exploring the coastline.
+My trip planning is getting serious! Booked the main flight yesterday (booking ref BKF-78X3YZ for travel on 2025-08-12), now just need to sort out the accommodation and maybe a rental car for exploring the coastline.
 </injected_text>
 </example>
 
@@ -81,9 +81,9 @@ Return *only* the modified document text with the injected PII. Do not include a
         # Use the full document passed in, not the snippet variable from previous code if different
         {"role": "user", "content": f"""Please inject PII into the following blogpost according to the instructions:
 
-<document_to_modify>
+<blog_to_modify>
 {document}
-</document_to_modify>
+</blog_to_modify>
 """}
     ]
 

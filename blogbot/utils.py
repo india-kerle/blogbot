@@ -21,12 +21,24 @@ vllm_image = (
 
 training_image = Image.debian_slim(python_version="3.12").pip_install(
     "transformers==4.38.0",
+    "pydantic>=2.0",
     "datasets==2.14.4",
-    "torch==2.5.0")
+    "hf_xet",
+    "accelerate==0.28.0",
+    "scikit-learn",
+    "pandas==2.2.3",
+    "numpy==1.26.4",
+    "torch==2.5.0").add_local_python_source(
+        "blogbot",
+        "utils",
+        "configs"
+    )
 
 data_generation_image = Image.debian_slim(python_version="3.12").pip_install(
     "pandas==2.2.3",
     "numpy==1.26.4",
+    "fastparquet",
+    "pyarrow",
     "pydantic==2.11.3").add_local_python_source(
         "blogbot",
         "utils",
